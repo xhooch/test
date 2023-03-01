@@ -12,7 +12,9 @@ services:
         - nginx
 
   auction-app:
-    image: auction:test
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
         - VIRTUAL_HOST=${APP_SERVICE_NAME}.${APP_HOST}
         - APP_DB_HOST=${DB_HOST}
