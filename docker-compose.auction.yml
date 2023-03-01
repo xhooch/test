@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    ports:
+        - 80:80
+        - 443:443
+    volumes:
+        - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks:
+        - nginx
+
+  auction-app:
+    image: auction:test
+    environment:
+        - VIRTUAL_HOST=${APP_SERVICE_NAME}.${APP_HOST}
+        - APP_DB_HOST=${DB_HOST}
+        - APP_DB_PORT=${DB_PORT}
+        - APP_DB_NAME=${DB_NAME}
+        - APP_DB_USERNAME=${DB_USERNAME}
+        - APP_DB_PASSWORD=${DB_PASSWORD}
+        - APP_RABBIT_SERVICE_NAME=${RABBIT_SERVICE_NAME}
+        - APP_RABBIT_HOST=${RABBIT_SERVICE_NAME}
+        - APP_RABBIT_PORT=${RABBIT_PORT}
+        - APP_RABBIT_USER=${RABBIT_DEFAULT_USER}
+        - APP_RABBIT_PASS=${RABBIT_DEFAULT_PASS}
+        - APP_RABBIT_VHOST=${RABBIT_DEFAULT_VHOST}
+        - APP_REDIS_HOST=${REDIS_HOST}
+        - APP_REDIS_PORT=${REDIS_PORT}
+        - WAITING_TIMEOUT=${WAITING_TIMEOUT_60}
+    networks:
+        - common
+        - nginx
+    volumes:
+      - /Users/xhooch/work/test/auction-app:/auction-app
+
+  mariadb:
+    image: mariadb:10.9.5
+    environment:
+        - MARIADB_ROOT_PASSWORD=${DB_PASSWORD}
+        - MARIADB_DATABASE=${DB_NAME}
+    networks:
+        - common
+        - db-control
+
+  adminer:
+    image: adminer
+    environment:
+        - VIRTUAL_HOST=${ADMINER_SERVICE_NAME}.${APP_HOST}
+    networks:
+        - db-control
+        - nginx
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+        - VIRTUAL_HOST=${PMA_SERVICE_NAME}.${APP_HOST}
+        - PMA_HOST=${DB_HOST}
+        - PMA_PORT=${DB_PORT}
+        - PMA_USER=${DB_USERNAME}
+        - PMA_PASSWORD=${DB_PASSWORD}
+    networks:
+        - nginx
+        - db-control
+
+  rabbit:
+    image: rabbitmq:3.9.28-management-alpine
+    environment:
+      - VIRTUAL_HOST=${RABBIT_SERVICE_NAME}.${APP_HOST}
+      - VIRTUAL_PORT=${RABBIT_PORT}
+      - RABBITMQ_DEFAULT_USER=${RABBIT_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBIT_DEFAULT_PASS}
+      - RABBITMQ_DEFAULT_VHOST=${RABBIT_DEFAULT_VHOST}
+    networks:
+      - nginx
+      - common
+
+  redis:
+    image: redis:alpine
+    networks:
+      - common
+
+networks:
+  common:
+    name: common
+    driver: bridge
+  db:
+    name: db-network
+    driver: bridge
+  db-control:
+    name: db-control-network
+    driver: bridge
+  nginx:
+    name: nginx-proxy
+    driver: bridge
